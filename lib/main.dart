@@ -84,6 +84,12 @@ class MyApp extends StatelessWidget {
           final universe = settings.arguments as Universe;
           return MaterialPageRoute(builder: (context) => CharacterListScreen(universe: universe));
         }
+        if (settings.name == '/character_list') {
+          final universe = settings.arguments as Universe;
+          return MaterialPageRoute(
+            builder: (_) => CharacterListScreen(universe: universe),
+          );
+        }
         return null;
       },
 

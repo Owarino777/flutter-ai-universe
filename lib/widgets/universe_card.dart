@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/universe.dart';
-import '../widgets/auth_image.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/cached_auth_image.dart';
 
 class UniverseCard extends StatelessWidget {
   final Universe universe;
@@ -23,7 +23,7 @@ class UniverseCard extends StatelessWidget {
         child: Stack(
           children: [
             universe.image != null && universe.image!.isNotEmpty
-                ? AuthImage(
+                ? CachedAuthImage(
               imageUrl: "https://yodai.wevox.cloud/image_data/${universe.image}",
               token: token,
               height: 180,

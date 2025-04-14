@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/universe.dart';
+import '../providers/auth_provider.dart';
 import '../providers/universe_provider.dart';
+import '../widgets/magical_loader.dart';
 
 class CreateUniverseScreen extends StatefulWidget {
   const CreateUniverseScreen({super.key});
@@ -12,24 +13,46 @@ class CreateUniverseScreen extends StatefulWidget {
 
 class _CreateUniverseScreenState extends State<CreateUniverseScreen> {
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  final String _selectedImage = "assets/images/default_universe.jpg";
 
-  void _saveUniverse() {
+  void _saveUniverse() async{
     final name = _nameController.text.trim();
-    final desc = _descriptionController.text.trim();
+    final token = context.read<AuthProvider>().token!;
 
-    if (name.isEmpty || desc.isEmpty) {
+    if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Veuillez remplir tous les champs")),
+        const SnackBar(content: Text("Veuillez entrer un nom")),
       );
       return;
     }
 
-    final newUniverse = Universe(name: name, description: desc, image: _selectedImage, id: DateTime.now().millisecondsSinceEpoch, creatorId: 0, createdAt: DateTime.now(), updatedAt: DateTime.now());
-    context.read<UniverseProvider>().addUniverse(newUniverse);
+    // Affiche un loader plein écran
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const MagicalLoader(),
+    );
 
-    Navigator.pushReplacementNamed(context, '/universe_list');
+    try {
+      final created = await context.read<UniverseProvider>().createUniverse(
+        token,
+        name,
+      );
+
+      Navigator.pop(context); // Fermer le loader
+
+      if (created != null) {
+        Navigator.pushReplacementNamed(context, '/universe_list');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Erreur lors de la création de l'univers.")),
+        );
+      }
+    } catch (e) {
+      Navigator.pop(context); // Fermer le loader même en cas d’erreur
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erreur : $e")),
+      );
+    }
   }
 
   @override
@@ -44,14 +67,6 @@ class _CreateUniverseScreenState extends State<CreateUniverseScreen> {
               controller: _nameController,
               decoration: const InputDecoration(labelText: "Nom de l'Univers"),
             ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(labelText: "Description"),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 20),
-            Image.asset(_selectedImage, height: 150),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _saveUniverse,

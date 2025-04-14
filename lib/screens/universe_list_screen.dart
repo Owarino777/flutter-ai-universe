@@ -12,6 +12,7 @@ class UniverseListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final universeProvider = context.read<UniverseProvider>();
     final token = context.read<AuthProvider>().token!;
+    final ScrollController scrollController = ScrollController();
 
     return Scaffold(
       appBar: AppBar(title: const Text("Sélectionne un Univers")),
@@ -26,17 +27,26 @@ class UniverseListScreen extends StatelessWidget {
             return const Center(child: Text('Aucun univers disponible.'));
           } else {
             final universes = snapshot.data!;
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: universes.length,
-              itemBuilder: (context, index) {
-                return UniverseCard(
-                  universe: universes[index],
-                  onTap: () {
-                    Navigator.pushNamed(context, '/create_character', arguments: universes[index]);
-                  },
-                );
-              },
+            return Scrollbar(
+              thumbVisibility: true,
+              controller: scrollController,
+              child: ListView.builder(
+                controller: scrollController,
+                padding: const EdgeInsets.all(16),
+                itemCount: universes.length,
+                itemBuilder: (context, index) {
+                  return UniverseCard(
+                    universe: universes[index],
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/character_list',
+                        arguments: universes[index],
+                      );
+                    },
+                  );
+                },
+              ),
             );
           }
         },

@@ -16,9 +16,32 @@ class UniverseProvider extends ChangeNotifier {
     return _universes;
   }
 
-  void addUniverse(Universe universe) {
-    _universes.add(universe);
-    notifyListeners();
+  Future<Universe?> createUniverse(String token, String name, {String? description}) async {
+    final newUniverse = await _universeService.createUniverse(token, name);
+    if (newUniverse != null) {
+      _universes.add(newUniverse);
+      notifyListeners();
+    }
+    return newUniverse;
+  }
+
+  Future<List<Character>> loadCharactersForUniverse(String token, Universe universe) async {
+    final characters = await _universeService.fetchCharactersOfUniverse(token, universe.id);
+    final index = _universes.indexWhere((u) => u.id == universe.id);
+    if (index != -1) {
+      _universes[index] = Universe(
+        id: universe.id,
+        name: universe.name,
+        description: universe.description,
+        image: universe.image,
+        creatorId: universe.creatorId,
+        createdAt: universe.createdAt,
+        updatedAt: universe.updatedAt,
+        characters: characters,
+      );
+      notifyListeners();
+    }
+    return characters;
   }
 
   void addCharacterToUniverse(Universe universe, Character character) {
