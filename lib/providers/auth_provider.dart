@@ -7,6 +7,8 @@ class AuthProvider extends ChangeNotifier {
 
   String? get token => _token;
 
+  get userId => null;
+
   Future<bool> login(String email, String password) async {
     final token = await _authService.login(email, password);
     if (token != null) {

@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:project/models/conversation.dart';
 import '../models/character.dart';
 import '../services/openai_service.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+  final Conversation conversation;
+  final Character character;
+
+  const ChatScreen({
+    super.key,
+    required this.conversation,
+    required this.character,
+  });
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -24,7 +32,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (text.isEmpty) return;
 
     setState(() {
-      _messages.add({"sender": "user", "text": text});
+      _messages.add({"sender": "ai", "text": "..."});
     });
 
     String aiResponse = await _openAIService.generateResponse(
@@ -34,6 +42,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
 
     setState(() {
+      _messages.removeLast(); // retire le "..."
       _messages.add({"sender": "ai", "text": aiResponse});
     });
 
@@ -42,7 +51,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final character = ModalRoute.of(context)!.settings.arguments as Character;
+    final character = widget.character;
 
     return Scaffold(
       appBar: AppBar(
@@ -59,7 +68,12 @@ class _ChatScreenState extends State<ChatScreen> {
                     content: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Image.asset(character.imageUrl, height: 150),
+                        Image.network(
+                          character.imageUrl.startsWith("http")
+                              ? character.imageUrl
+                              : "https://yodai.wevox.cloud/image_data/${character.imageUrl}",
+                          height: 150,
+                        ),
                         const SizedBox(height: 10),
                         Text(character.description),
                       ],

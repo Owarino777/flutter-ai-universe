@@ -44,6 +44,14 @@ class UniverseProvider extends ChangeNotifier {
     return characters;
   }
 
+  Future<Character?> createCharacterForUniverse(String token, Universe universe, String name) async {
+    final newChar = await _universeService.createCharacter(token, universe.id, name);
+    if (newChar != null) {
+      addCharacterToUniverse(universe, newChar);
+    }
+    return newChar;
+  }
+
   void addCharacterToUniverse(Universe universe, Character character) {
     final index = _universes.indexWhere((u) => u.name == universe.name);
     if (index != -1) {

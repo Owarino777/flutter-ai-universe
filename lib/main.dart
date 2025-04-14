@@ -13,8 +13,6 @@ import 'screens/universe_list_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
-import 'screens/chat_screen.dart';
-
 import 'providers/auth_provider.dart';
 import 'providers/universe_provider.dart';
 
@@ -74,8 +72,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/create_universe': (context) => const CreateUniverseScreen(),
-        '/universe_list': (context) => const UniverseListScreen(), // ⚠️ Manquant
-        '/chat': (context) => const ChatScreen(),
+        '/universe_list': (context) => const UniverseListScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/create_character') {

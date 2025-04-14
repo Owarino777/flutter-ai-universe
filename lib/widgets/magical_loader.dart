@@ -14,7 +14,7 @@ class MagicalLoader extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              "🔮 Création magique de l’univers en cours...",
+              "🔮 Création magique en cours...",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 20,
@@ -25,7 +25,7 @@ class MagicalLoader extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             const Text(
-              "L’imaginaire prend forme, invoque les étoiles...",
+              "L’imaginaire prend forme...",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,

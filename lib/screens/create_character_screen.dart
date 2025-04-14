@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/universe.dart';
-import '../models/character.dart';
+import '../providers/auth_provider.dart';
 import '../providers/universe_provider.dart';
+import '../widgets/magical_loader.dart';
 
 class CreateCharacterScreen extends StatefulWidget {
   final Universe universe;
@@ -15,26 +16,42 @@ class CreateCharacterScreen extends StatefulWidget {
 
 class _CreateCharacterScreenState extends State<CreateCharacterScreen> {
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  final String _selectedImage = "assets/images/default_character.jpg";
 
-  void _saveCharacter() {
-    if (_nameController.text.isEmpty || _descriptionController.text.isEmpty) {
+  Future<void> _saveCharacter() async {
+    final name = _nameController.text.trim();
+    final token = context.read<AuthProvider>().token!;
+
+    if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Veuillez remplir tous les champs")),
+        const SnackBar(content: Text("Veuillez entrer un nom de personnage")),
       );
       return;
     }
 
-    final character = Character(
-      name: _nameController.text.trim(),
-      description: _descriptionController.text.trim(),
-      imageUrl: _selectedImage,
+    // Affiche un loader
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const MagicalLoader(),
     );
 
-    context.read<UniverseProvider>().addCharacterToUniverse(widget.universe, character);
+    final newChar = await context
+        .read<UniverseProvider>()
+        .createCharacterForUniverse(token, widget.universe, name);
 
-    Navigator.pushReplacementNamed(context, '/character_list', arguments: widget.universe);
+    Navigator.pop(context); // Ferme le loader
+
+    if (newChar != null) {
+      Navigator.pushReplacementNamed(
+        context,
+        '/character_list',
+        arguments: widget.universe,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Erreur lors de la création du personnage.")),
+      );
+    }
   }
 
   @override
@@ -49,14 +66,6 @@ class _CreateCharacterScreenState extends State<CreateCharacterScreen> {
               controller: _nameController,
               decoration: const InputDecoration(labelText: "Nom du personnage"),
             ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(labelText: "Description"),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 20),
-            Image.asset(_selectedImage, height: 150),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _saveCharacter,

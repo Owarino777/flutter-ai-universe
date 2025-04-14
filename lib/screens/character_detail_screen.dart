@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 import '../models/character.dart';
+import 'character_conversations_screen.dart';
+import '../widgets/custom_button.dart';
+import '../providers/auth_provider.dart';
+import '../models/conversation.dart';
+import '../services/universe_service.dart';
+import 'package:provider/provider.dart';
+
+import 'chat_screen.dart';
 
 class CharacterDetailScreen extends StatelessWidget {
   final Character character;
@@ -24,6 +32,63 @@ class CharacterDetailScreen extends StatelessWidget {
                 style: const TextStyle(fontSize: 18, height: 1.5),
               ),
             ),
+
+            const SizedBox(height: 20),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: CustomButton(
+                text: "Voir les conversations",
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CharacterConversationsScreen(character: character),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: CustomButton(
+                text: "Discuter avec ${character.name}",
+                onPressed: () async {
+                  final token = context.read<AuthProvider>().token!;
+                  final userId = context.read<AuthProvider>().userId!;
+
+                  final all = await UniverseService().fetchAllConversations(token);
+                  Conversation? existing = all.where((c) => c.characterId == character.id && c.userId == userId).isNotEmpty
+                      ? all.firstWhere((c) => c.characterId == character.id && c.userId == userId)
+                      : null;
+
+                  Conversation conversation;
+
+                  if (existing != null) {
+                    conversation = existing;
+                  } else {
+                    final created = await UniverseService().createConversation(token, character.id, userId);
+                    if (created == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Erreur de création.")));
+                      return;
+                    }
+                    conversation = created;
+                  }
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatScreen(conversation: conversation, character: character),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 30),
           ],
         ),
       ),
