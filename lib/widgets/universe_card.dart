@@ -24,7 +24,7 @@ class UniverseCard extends StatelessWidget {
           children: [
             universe.image != null && universe.image!.isNotEmpty
                 ? AuthImage(
-              imageUrl: "https://yodai.wevox.cloud/images/${universe.image}",
+              imageUrl: "https://yodai.wevox.cloud/image_data/${universe.image}",
               token: token,
               height: 180,
               width: double.infinity,
