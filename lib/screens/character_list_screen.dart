@@ -4,6 +4,7 @@ import '../models/character.dart';
 import '../models/universe.dart';
 import '../providers/auth_provider.dart';
 import '../providers/universe_provider.dart';
+import '../widgets/character_card.dart';
 
 class CharacterListScreen extends StatefulWidget {
   final Universe universe;
@@ -45,16 +46,15 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
               itemCount: characters.length,
               itemBuilder: (context, index) {
                 final char = characters[index];
-                return ListTile(
-                  leading: char.imageUrl.startsWith("http")
-                      ? Image.network(char.imageUrl, width: 50, height: 50)
-                      : Image.network(
-                    "https://yodai.wevox.cloud/image_data/${char.imageUrl}",
-                    width: 50,
-                    height: 50,
-                  ),
-                  title: Text(char.name),
-                  subtitle: Text(char.description),
+                return CharacterCard(
+                  character: char,
+                  onTap: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/character_detail',
+                      arguments: char,
+                    );
+                  },
                 );
               },
             );

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:project/screens/character_detail_screen.dart';
 import 'package:provider/provider.dart';
 
+import 'models/character.dart';
 import 'models/universe.dart';
 
 import 'screens/character_list_screen.dart';
@@ -88,6 +90,12 @@ class MyApp extends StatelessWidget {
           final universe = settings.arguments as Universe;
           return MaterialPageRoute(
             builder: (_) => CharacterListScreen(universe: universe),
+          );
+        }
+        if (settings.name == '/character_detail') {
+          final character = settings.arguments as Character;
+          return MaterialPageRoute(
+            builder: (_) => CharacterDetailScreen(character: character),
           );
         }
         return null;
