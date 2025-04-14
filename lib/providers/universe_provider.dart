@@ -2,15 +2,19 @@
 import 'package:flutter/material.dart';
 import '../models/universe.dart';
 import '../models/character.dart';
+import '../services/universe_service.dart';
 
 class UniverseProvider extends ChangeNotifier {
-  final List<Universe> _universes = [
-    Universe(name: "Terres Maudites", description: "Un monde sombre et mystique.", imageUrl: "assets/images/universe1.jpg"),
-    Universe(name: "Cité Céleste", description: "Un royaume flottant parmi les nuages.", imageUrl: "assets/images/universe2.jpg"),
-    Universe(name: "Forêt des Anciens", description: "Un bois enchanté peuplé d'esprits.", imageUrl: "assets/images/universe3.jpg"),
-  ];
+  final UniverseService _universeService = UniverseService();
+  List<Universe> _universes = [];
 
   List<Universe> get universes => _universes;
+
+  Future<List<Universe>> loadUniverses(String token) async {
+    _universes = await _universeService.fetchUniverses(token);
+    notifyListeners();
+    return _universes;
+  }
 
   void addUniverse(Universe universe) {
     _universes.add(universe);

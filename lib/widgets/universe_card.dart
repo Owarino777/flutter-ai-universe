@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/universe.dart';
+import '../widgets/auth_image.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
 class UniverseCard extends StatelessWidget {
   final Universe universe;
@@ -9,6 +12,8 @@ class UniverseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final token = context.read<AuthProvider>().token!;
+
     return GestureDetector(
       onTap: onTap,
       child: Card(
@@ -17,18 +22,15 @@ class UniverseCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: Stack(
           children: [
-            // Image de fond
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
+            universe.image != null && universe.image!.isNotEmpty
+                ? AuthImage(
+              imageUrl: "https://yodai.wevox.cloud/images/${universe.image}",
+              token: token,
               height: 180,
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage(universe.imageUrl),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            // Dégradé sombre pour améliorer la lisibilité
+              width: double.infinity,
+              fit: BoxFit.cover,
+            )
+                : Container(height: 180, color: Colors.grey),
             Container(
               height: 180,
               decoration: BoxDecoration(
@@ -39,7 +41,6 @@ class UniverseCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Texte de l'univers
             Positioned(
               bottom: 15,
               left: 15,

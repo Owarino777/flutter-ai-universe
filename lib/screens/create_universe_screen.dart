@@ -26,7 +26,7 @@ class _CreateUniverseScreenState extends State<CreateUniverseScreen> {
       return;
     }
 
-    final newUniverse = Universe(name: name, description: desc, imageUrl: _selectedImage);
+    final newUniverse = Universe(name: name, description: desc, image: _selectedImage, id: DateTime.now().millisecondsSinceEpoch, creatorId: 0, createdAt: DateTime.now(), updatedAt: DateTime.now());
     context.read<UniverseProvider>().addUniverse(newUniverse);
 
     Navigator.pushReplacementNamed(context, '/universe_list');
