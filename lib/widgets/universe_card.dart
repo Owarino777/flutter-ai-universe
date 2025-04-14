@@ -1,0 +1,63 @@
+import 'package:flutter/material.dart';
+import '../models/universe.dart';
+
+class UniverseCard extends StatelessWidget {
+  final Universe universe;
+  final VoidCallback onTap;
+
+  const UniverseCard({super.key, required this.universe, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            // Image de fond
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              height: 180,
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage(universe.imageUrl),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            // Dégradé sombre pour améliorer la lisibilité
+            Container(
+              height: 180,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.center,
+                  colors: [Colors.black.withValues(), Colors.transparent],
+                ),
+              ),
+            ),
+            // Texte de l'univers
+            Positioned(
+              bottom: 15,
+              left: 15,
+              child: Text(
+                universe.name,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(blurRadius: 4, color: Colors.black, offset: Offset(2, 2)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
