@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:project/models/conversation.dart';
+import 'package:provider/provider.dart';
+
+import '../models/message.dart';
 import '../models/character.dart';
-import '../services/openai_service.dart';
+import '../models/conversation.dart';
+import '../services/message_service.dart';
+import '../providers/auth_provider.dart';
 
 class ChatScreen extends StatefulWidget {
   final Conversation conversation;
@@ -18,35 +22,89 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _messageController = TextEditingController();
-  final List<Map<String, String>> _messages = [];
-  late OpenAIService _openAIService;
+  final TextEditingController _controller = TextEditingController();
+  final List<Message> _messages = [];
+  bool _isLoading = true;
+  bool _isSending = false;
+  late String _token;
+  final MessageService _messageService = MessageService();
 
   @override
   void initState() {
     super.initState();
-    _openAIService = OpenAIService();
+    _token = context.read<AuthProvider>().token!;
+    _loadMessages();
   }
 
-  void _sendMessage(String text, Character character) async {
-    if (text.isEmpty) return;
+  Future<void> _loadMessages() async {
+    try {
+      final loaded = await _messageService.fetchMessages(
+        _token,
+        widget.conversation.id,
+      );
+      setState(() {
+        _messages.clear();
+        _messages.addAll(loaded);
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      debugPrint("Erreur chargement messages : $e");
+    }
+  }
 
-    setState(() {
-      _messages.add({"sender": "ai", "text": "..."});
-    });
+  Future<void> _sendMessage(String text) async {
+    if (text.trim().isEmpty) return;
 
-    String aiResponse = await _openAIService.generateResponse(
-      text,
-      character.name,
-      character.description,
+    setState(() => _isSending = true);
+
+    try {
+      final newMessages = await _messageService.sendMessage(
+        _token,
+        widget.conversation.id,
+        text.trim(),
+      );
+
+      setState(() {
+        _messages.addAll(newMessages);
+        _controller.clear();
+      });
+
+      // Forcer la mise à jour de l'interface utilisateur
+      setState(() {});
+    } catch (e) {
+      debugPrint("Erreur envoi message : $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Erreur lors de l'envoi du message.")),
+      );
+    } finally {
+      setState(() => _isSending = false);
+    }
+  }
+
+  Widget _buildMessageBubble(Message msg) {
+    final isUser = msg.sender == "user";
+
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: isUser ? Colors.blue : Colors.grey[300],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          msg.content,
+          style: TextStyle(
+            color: isUser ? Colors.white : Colors.black,
+            fontSize: 16,
+          ),
+        ),
+      ),
     );
-
-    setState(() {
-      _messages.removeLast(); // retire le "..."
-      _messages.add({"sender": "ai", "text": aiResponse});
-    });
-
-    _messageController.clear();
   }
 
   @override
@@ -62,71 +120,67 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: () {
               showDialog(
                 context: context,
-                builder: (context) {
-                  return AlertDialog(
-                    title: Text(character.name),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Image.network(
-                          character.imageUrl.startsWith("http")
-                              ? character.imageUrl
-                              : "https://yodai.wevox.cloud/image_data/${character.imageUrl}",
-                          height: 150,
-                        ),
-                        const SizedBox(height: 10),
-                        Text(character.description),
-                      ],
-                    ),
-                  );
-                },
+                builder: (_) => AlertDialog(
+                  title: Text(character.name),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.network(
+                        character.imageUrl.startsWith("http")
+                            ? character.imageUrl
+                            : "https://yodai.wevox.cloud/image_data/${character.imageUrl}",
+                        height: 150,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(character.description),
+                    ],
+                  ),
+                ),
               );
             },
-          )
+          ),
         ],
       ),
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _messages.isEmpty
+                ? const Center(child: Text("Aucun message pour l'instant."))
+                : ListView.builder(
+              padding: const EdgeInsets.all(8),
               itemCount: _messages.length,
               itemBuilder: (context, index) {
-                final message = _messages[index];
-                final isUser = message["sender"] == "user";
-                return Align(
-                  alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: isUser ? Colors.blue : Colors.grey[300],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      message["text"]!,
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ),
-                );
+                final msg = _messages[index];
+                return _buildMessageBubble(msg);
               },
             ),
           ),
+          const Divider(height: 1),
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(10),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
-                    controller: _messageController,
+                    controller: _controller,
+                    enabled: !_isSending,
                     decoration: const InputDecoration(
                       hintText: "Écris un message...",
                       border: OutlineInputBorder(),
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.send, color: Colors.blue),
-                  onPressed: () => _sendMessage(_messageController.text, character),
+                  icon: Icon(
+                    Icons.send,
+                    color: _isSending ? Colors.grey : Colors.blue,
+                  ),
+                  onPressed: _isSending
+                      ? null
+                      : () => _sendMessage(_controller.text),
                 ),
               ],
             ),

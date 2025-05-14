@@ -6,7 +6,6 @@ import '../providers/auth_provider.dart';
 import '../models/conversation.dart';
 import '../services/universe_service.dart';
 import 'package:provider/provider.dart';
-
 import 'chat_screen.dart';
 
 class CharacterDetailScreen extends StatelessWidget {
@@ -32,13 +31,11 @@ class CharacterDetailScreen extends StatelessWidget {
                 style: const TextStyle(fontSize: 18, height: 1.5),
               ),
             ),
-
             const SizedBox(height: 20),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: CustomButton(
-                text: "Voir les conversations",
+                text: "Voir la conversations",
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -49,24 +46,34 @@ class CharacterDetailScreen extends StatelessWidget {
                 },
               ),
             ),
-
             const SizedBox(height: 10),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: CustomButton(
                 text: "Discuter avec ${character.name}",
                 onPressed: () async {
-                  final token = context.read<AuthProvider>().token!;
-                  final userId = context.read<AuthProvider>().userId!;
+                  final authProvider = context.read<AuthProvider>();
+                  final token = authProvider.token;
+                  final userId = authProvider.userId;
+
+                  if (token == null || userId == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Utilisateur non authentifié.")),
+                    );
+                    return;
+                  }
 
                   final all = await UniverseService().fetchAllConversations(token);
-                  Conversation? existing = all.where((c) => c.characterId == character.id && c.userId == userId).isNotEmpty
-                      ? all.firstWhere((c) => c.characterId == character.id && c.userId == userId)
-                      : null;
+
+                  Conversation? existing;
+                  for (final c in all) {
+                    if (c.characterId == character.id && c.userId == userId) {
+                      existing = c;
+                      break;
+                    }
+                  }
 
                   Conversation conversation;
-
                   if (existing != null) {
                     conversation = existing;
                   } else {
@@ -87,7 +94,6 @@ class CharacterDetailScreen extends StatelessWidget {
                 },
               ),
             ),
-
             const SizedBox(height: 30),
           ],
         ),
