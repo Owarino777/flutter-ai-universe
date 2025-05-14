@@ -17,6 +17,7 @@ class AuthProvider extends ChangeNotifier {
     if (token != null) {
       _token = token;
       final payload = _decodeToken(token);
+      print("Payload décodé : $payload");
       _userId = payload["id"];
       notifyListeners();
       return true;
@@ -33,9 +34,13 @@ class AuthProvider extends ChangeNotifier {
     final payload = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
     final Map<String, dynamic> decoded = jsonDecode(payload);
 
-    // Vérifie si le champ 'data' existe et est bien un Map
-    if (decoded.containsKey('data') && decoded['data'] is Map<String, dynamic>) {
-      return decoded['data'];
+    if (decoded.containsKey('data')) {
+      final data = decoded['data'];
+      if (data is String) {
+        return jsonDecode(data); // <-- on le re-décode ici
+      } else if (data is Map<String, dynamic>) {
+        return data;
+      }
     }
 
     // Si 'data' n'est pas un map, on retourne tout le payload décodé

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:project/widgets/custom_button.dart';
+import 'package:project/widgets/rpg_transition.dart';
+import 'package:project/screens/register_screen.dart';
+import 'package:project/screens/login_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -89,7 +92,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                         children: [
                           CustomButton(
                             text: "Démarrer l'Aventure",
-                            onPressed: () => Navigator.pushNamed(context, '/register'),
+                            onPressed: () => Navigator.of(context).push(
+                              buildRpgRoute(const RegisterScreen(), type: TransitionType.scale),
+                            ),
                           ),
                           const SizedBox(height: 20),
                           CustomButton(

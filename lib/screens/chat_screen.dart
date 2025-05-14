@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../models/message.dart';
 import '../models/character.dart';
 import '../models/conversation.dart';
 import '../services/message_service.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/cached_auth_image.dart';
 
 class ChatScreen extends StatefulWidget {
   final Conversation conversation;
@@ -28,6 +30,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isSending = false;
   late String _token;
   final MessageService _messageService = MessageService();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -42,15 +45,28 @@ class _ChatScreenState extends State<ChatScreen> {
         _token,
         widget.conversation.id,
       );
+      if (!mounted) return;
+
       setState(() {
         _messages.clear();
         _messages.addAll(loaded);
         _isLoading = false;
       });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
+
+      // Attendre la fin de frame + petit délai, puis scroll à la fin
+      SchedulerBinding.instance.addPostFrameCallback((_) async {
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent + 100,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
       });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
       debugPrint("Erreur chargement messages : $e");
     }
   }
@@ -67,41 +83,54 @@ class _ChatScreenState extends State<ChatScreen> {
         text.trim(),
       );
 
+      if (!mounted) return;
+
       setState(() {
         _messages.addAll(newMessages);
         _controller.clear();
       });
 
-      // Forcer la mise à jour de l'interface utilisateur
-      setState(() {});
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOut,
+        );
+      }
     } catch (e) {
+      if (!mounted) return;
       debugPrint("Erreur envoi message : $e");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Erreur lors de l'envoi du message.")),
       );
     } finally {
-      setState(() => _isSending = false);
+      if (mounted) setState(() => _isSending = false);
     }
   }
 
   Widget _buildMessageBubble(Message msg) {
     final isUser = msg.sender == "user";
+    final bgColor = isUser ? Colors.amberAccent : const Color.fromARGB(25, 255, 255, 255);
+    final textColor = isUser ? Colors.black : Colors.white;
 
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(12),
+        constraints: const BoxConstraints(maxWidth: 280),
         decoration: BoxDecoration(
-          color: isUser ? Colors.blue : Colors.grey[300],
-          borderRadius: BorderRadius.circular(12),
+          color: bgColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(2, 2)),
+          ],
         ),
         child: Text(
           msg.content,
-          style: TextStyle(
-            color: isUser ? Colors.white : Colors.black,
-            fontSize: 16,
-          ),
+          style: TextStyle(color: textColor, fontSize: 16),
         ),
       ),
     );
@@ -112,75 +141,149 @@ class _ChatScreenState extends State<ChatScreen> {
     final character = widget.character;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Discussion avec ${character.name}"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: Text(character.name),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset("assets/images/background_yodai_generated.jpg", fit: BoxFit.cover),
+          Container(color: const Color.fromARGB(153, 0, 0, 0)),
+
+          SafeArea(
+            child: Column(
+              children: [
+                // 👤 HEADER avec retour
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
                     children: [
-                      Image.network(
-                        character.imageUrl.startsWith("http")
-                            ? character.imageUrl
-                            : "https://yodai.wevox.cloud/image_data/${character.imageUrl}",
-                        height: 150,
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                        onPressed: () => Navigator.of(context).pop(),
                       ),
-                      const SizedBox(height: 10),
-                      Text(character.description),
+                      const SizedBox(width: 4),
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundImage: NetworkImage(
+                          character.imageUrl.startsWith("http")
+                              ? character.imageUrl
+                              : "https://yodai.wevox.cloud/image_data/${character.imageUrl}",
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          "Discussion avec ${character.name}",
+                          style: const TextStyle(
+                            fontFamily: 'MedievalSharp',
+                            fontSize: 20,
+                            color: Colors.amberAccent,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.info_outline, color: Colors.white),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => Dialog(
+                              backgroundColor: Colors.grey[900],
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxHeight: 500, maxWidth: 360),
+                                child: SingleChildScrollView(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        character.name,
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.amberAccent,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      CachedAuthImage(
+                                        imageUrl: character.imageUrl.startsWith("http")
+                                            ? character.imageUrl
+                                            : "https://yodai.wevox.cloud/image_data/${character.imageUrl}",
+                                        token: _token,
+                                        height: 150,
+                                        width: 150,
+                                        fit: BoxFit.cover,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        character.description,
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 15,
+                                          height: 1.4,
+                                        ),
+                                        textAlign: TextAlign.justify,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _messages.isEmpty
-                ? const Center(child: Text("Aucun message pour l'instant."))
-                : ListView.builder(
-              padding: const EdgeInsets.all(8),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                return _buildMessageBubble(msg);
-              },
-            ),
-          ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: Row(
-              children: [
+
+                // 💬 MESSAGES
                 Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    enabled: !_isSending,
-                    decoration: const InputDecoration(
-                      hintText: "Écris un message...",
-                      border: OutlineInputBorder(),
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator(color: Colors.amber))
+                      : _messages.isEmpty
+                      ? const Center(
+                    child: Text(
+                      "Aucun message pour l'instant.",
+                      style: TextStyle(color: Colors.white70),
                     ),
+                  )
+                      : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) => _buildMessageBubble(_messages[index]),
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: Icon(
-                    Icons.send,
-                    color: _isSending ? Colors.grey : Colors.blue,
+
+                // 📝 TEXTFIELD avec envoi par entrée
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _controller,
+                          enabled: !_isSending,
+                          style: const TextStyle(color: Colors.white),
+                          onSubmitted: _isSending ? null : _sendMessage,
+                          decoration: InputDecoration(
+                            hintText: "Écris ton message ici...",
+                            hintStyle: const TextStyle(color: Colors.white54),
+                            filled: true,
+                            fillColor: const Color.fromARGB(25, 255, 255, 255),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: Icon(Icons.send, color: _isSending ? Colors.grey : Colors.amberAccent),
+                        onPressed: _isSending ? null : () => _sendMessage(_controller.text),
+                      ),
+                    ],
                   ),
-                  onPressed: _isSending
-                      ? null
-                      : () => _sendMessage(_controller.text),
                 ),
               ],
             ),
