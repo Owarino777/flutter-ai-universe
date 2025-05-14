@@ -97,6 +97,7 @@ class CharacterDetailScreen extends StatelessWidget {
                       final userId = authProvider.userId;
 
                       if (token == null || userId == null) {
+                        if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text("Utilisateur non authentifié.")),
                         );
@@ -105,6 +106,7 @@ class CharacterDetailScreen extends StatelessWidget {
 
                       // Charger les conversations avant le test
                       final all = await UniverseService().fetchAllConversations(token);
+                      if (!context.mounted) return;
 
                       // Vérifier si une conversation existe déjà
                       final existing = all.firstWhereOrNull(
@@ -117,6 +119,8 @@ class CharacterDetailScreen extends StatelessWidget {
                         conversation = existing;
                       } else {
                         final created = await UniverseService().createConversation(token, character.id, userId);
+                        if (!context.mounted) return;
+
                         if (created == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text("Erreur de création.")),
@@ -125,6 +129,8 @@ class CharacterDetailScreen extends StatelessWidget {
                         }
                         conversation = created;
                       }
+
+                      if (!context.mounted) return;
 
                       // Aller à l'écran de chat
                       Navigator.push(

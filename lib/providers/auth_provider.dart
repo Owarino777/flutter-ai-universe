@@ -17,7 +17,6 @@ class AuthProvider extends ChangeNotifier {
     if (token != null) {
       _token = token;
       final payload = _decodeToken(token);
-      print("Payload décodé : $payload");
       _userId = payload["id"];
       notifyListeners();
       return true;

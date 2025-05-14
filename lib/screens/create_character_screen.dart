@@ -18,11 +18,12 @@ class _CreateCharacterScreenState extends State<CreateCharacterScreen> {
   final TextEditingController _nameController = TextEditingController();
 
   Future<void> _saveCharacter() async {
+    final localContext = context; // Sauvegarder le contexte localement
     final name = _nameController.text.trim();
-    final token = context.read<AuthProvider>().token!;
+    final token = localContext.read<AuthProvider>().token!;
 
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(localContext).showSnackBar(
         const SnackBar(content: Text("Veuillez entrer un nom de personnage")),
       );
       return;
@@ -30,25 +31,25 @@ class _CreateCharacterScreenState extends State<CreateCharacterScreen> {
 
     // Affiche un loader
     showDialog(
-      context: context,
+      context: localContext,
       barrierDismissible: false,
       builder: (_) => const MagicalLoader(),
     );
 
-    final newChar = await context
+    final newChar = await localContext
         .read<UniverseProvider>()
         .createCharacterForUniverse(token, widget.universe, name);
 
-    Navigator.pop(context); // Ferme le loader
+    Navigator.pop(localContext); // Ferme le loader
 
     if (newChar != null) {
       Navigator.pushReplacementNamed(
-        context,
+        localContext,
         '/character_list',
         arguments: widget.universe,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(localContext).showSnackBar(
         const SnackBar(content: Text("Erreur lors de la création du personnage.")),
       );
     }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:project/widgets/custom_button.dart';
 import 'package:project/widgets/rpg_transition.dart';
 import 'package:project/screens/register_screen.dart';
-import 'package:project/screens/login_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
